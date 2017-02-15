@@ -5,7 +5,7 @@ const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-module.exports = function generateBunnyDrawer({ regl, view, model }) {
+module.exports = function generateBunnyDrawer({ regl, model }) {
 
   const drawMesh = regl({
     vert: `
@@ -44,7 +44,6 @@ module.exports = function generateBunnyDrawer({ regl, view, model }) {
 
     uniforms: {
       model: model,
-      // view: view,
     }
   })
 

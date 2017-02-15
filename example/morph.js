@@ -1,7 +1,7 @@
 const mat4 = require('gl-mat4')
 const bunny = require('bunny')
 
-module.exports = function generateLodDrawer({ regl, view, model }) {
+module.exports = function generateLodDrawer({ regl, model }) {
 
   // We'll generate 4 refined levels of detail for the bunny mesh
   const NUM_LODS = 4
@@ -114,7 +114,6 @@ module.exports = function generateLodDrawer({ regl, view, model }) {
     elements: lodCells,
 
     uniforms: {
-      // view: view,
       model: model,
 
       // We set the lod uniform to be the fractional LOD
