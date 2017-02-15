@@ -1,16 +1,7 @@
-const mat4 = require('gl-mat4')
-const perspective = require('gl-mat4/perspective')
-const translate = require('gl-mat4/translate')
-const quat = require('gl-quat')
-const quatInvert = require('gl-quat/invert')
+const VRFrameData = global.VRFrameData
 
 module.exports = function ({regl}) {
-  const mat = new Float32Array(16)
-  const frameData = new global.VRFrameData()
-  const defaultBounds = {
-    leftBounds: [ 0.0, 0.0, 0.5, 1.0 ],
-    rightBounds: [ 0.5, 0.0, 0.5, 1.0 ],
-  }
+  const frameData = new VRFrameData()
   const setEye = regl({
     context: {
       projection: ({}, { eye }) => {
@@ -53,33 +44,26 @@ module.exports = function ({regl}) {
     }
   }
 
-  function renderVr (props, block) {
-    const zNear = props.zNear || 1
-    const zFar = props.zFar || 1000.0
-    // update VR display
-    const vrDisplay = props.vrDisplay
-    vrDisplay.depthNear = zNear
-    vrDisplay.depthFar = zFar
+  function renderVr ({ vrDisplay }, renderScene) {
     // load VR data
+    const vrDisplay = props.vrDisplay
     vrDisplay.getFrameData(frameData)
-    const layers = vrDisplay.getLayers()
     
     // render left
     setEye({
       eye: 0,
       side: 'left',
-      layers,
       vrDisplay,
-    }, block)
+    }, renderScene)
     
     // render right
     setEye({
       eye: 1,
       side: 'right',
-      layers,
       vrDisplay,
-    }, block)
+    }, renderScene)
 
+    // push frame to HMD
     vrDisplay.submitFrame()
   }
 }

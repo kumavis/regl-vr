@@ -12,11 +12,6 @@ const generateBunnyDrawer = require('./bunny')
 const generateLodBunnyDrawer = require('./morph')
 const webVR = require('../vr')({regl})
 
-window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false )
-
-function onVRDisplayPresentChange(){
-  console.log('onVRDisplayPresentChange', arguments)
-}
 
 navigator.getVRDisplays().then((vrDisplays) => {
 
@@ -24,29 +19,10 @@ navigator.getVRDisplays().then((vrDisplays) => {
 
   const vrDisplay = vrDisplays[0]
   global.vrDisplay = vrDisplay
-  console.log('VR display detected: ' + vrDisplay.displayName);
-
+  console.log(`VR display detected: ${vrDisplay.displayName}`)
+  
   // setup presenting
   vrDisplay.requestPresent([{ source: regl._gl.canvas }])
-  window.addEventListener('beforeunload', (e) => {
-    vrDisplay.exitPresent()
-  })
-
-  const layers = vrDisplay.getLayers()
-  console.log('layers:', layers)
-
-  const eyeParams = vrDisplay.getEyeParameters('left')
-  console.log(eyeParams)
-  
-  
-  // vrDisplay.requestAnimationFrame
-  // vrDisplay.submitFrame();
-  const pose = vrDisplay.getPose();
-  console.log('pose:', pose)
-  // vrDisplay.resetPose();
-  console.log('stageParameters:', vrDisplay.stageParameters)
-  // standingMatrix.fromArray( vrDisplay.stageParameters.sittingToStandingTransform );
-
   startRender({ vrDisplay })
 
 }).catch((err) => {
@@ -73,11 +49,7 @@ function startRender({ vrDisplay }) {
       depth: 1
     })
 
-    webVR({
-      zNear: 0.5,
-      zFar: 1000.0,
-      vrDisplay,
-    }, () => {
+    webVR({ vrDisplay }, () => {
       // for morph bunny
       const NUM_LODS = 4
       const lod = Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick))))
