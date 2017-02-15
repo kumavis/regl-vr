@@ -1,5 +1,5 @@
 {
-  "name": "regl-stereo",
+  "name": "regl-vr",
   "version": "1.0.0",
   "description": "Basic stereo renderer for regl",
   "main": "stereo.js",
@@ -16,11 +16,12 @@
     "regl": "^1.1.0"
   },
   "scripts": {
-    "start": "beefy ./example/index.js:bundle.js --live"
+    "start": "beefy  --live ./example/index.js:bundle.js",
+    "build": "browserify ./example/index.js -o bundle.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikolalysenko/regl-stereo.git"
+    "url": "git+https://github.com/kumvis/regl-vr.git"
   },
   "keywords": [
     "stereo",
@@ -32,7 +33,7 @@
   "author": "Mikola Lysenko",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mikolalysenko/regl-stereo/issues"
+    "url": "https://github.com/kumvis/regl-vr/issues"
   },
-  "homepage": "https://github.com/mikolalysenko/regl-stereo#readme"
+  "homepage": "https://github.com/kumvis/regl-vr#readme"
 }
