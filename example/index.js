@@ -8,7 +8,9 @@ const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-const webVR = require('../stereo')({regl})
+const generateBunnyDrawer = require('./bunny')
+const generateLodBunnyDrawer = require('./morph')
+const webVR = require('../vr')({regl})
 
 window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false )
 
@@ -52,76 +54,31 @@ navigator.getVRDisplays().then((vrDisplays) => {
 
 function startRender({ vrDisplay }) {
 
-  const drawMesh = regl({
-    vert: `
-    precision highp float;
-
-    attribute vec3 position, normals;
-    uniform mat4 projection, view, model;
-
-    varying vec3 fragColor;
-
-    void main () {
-      vec3 color = normals;
-      float minC = min(min(color.x, color.y), color.z);
-      float maxC = max(max(color.x, color.y), color.z);
-      fragColor = (color - minC) / (maxC - minC);
-      gl_Position = projection * view * model * vec4(position, 1);
-    }
-    `,
-
-    frag: `
-    precision highp float;
-
-    varying vec3 fragColor;
-
-    void main () {
-      gl_FragColor = vec4(fragColor, 1);
-    }
-    `,
-
-    attributes: {
-      position: bunny.positions,
-      normals: normals(bunny.cells, bunny.positions)
+  const drawMesh = generateBunnyDrawer({
+  // const drawMesh = generateLodBunnyDrawer({
+    regl,
+    view: ({tick}) => {
+      const pose = vrDisplay.getPose()
+      if (pose && pose.position) {
+        // invert for some reason
+        const rot = quat.create()
+        quat.invert(rot, pose.orientation)
+        // invert for some reason
+        const scale = -1
+        const pos = pose.position.map((value) => value*scale )
+        return mat4.fromRotationTranslation(mat4.create(), rot, pos)
+      } else {
+        return mat4.lookAt(
+          mat4.create(),
+          [0, 2.5, -20],
+          [0, 2.5, 0],
+          [0, 1, 0]
+        )
+      }
     },
-
-    elements: bunny.cells,
-
-    uniforms: {
-      model: ({tick}) => {
-        const mat = mat4.identity(mat4.create())
-        translate(mat, mat, [0, 0, -1])
-        mat4.rotateY(
-          mat,
-          mat,
-          0.01 * tick
-        ),
-        scale(mat, mat, [0.03, 0.03, 0.03])
-        return mat
-      },
-      view: ({tick}) => {
-        const pose = vrDisplay.getPose()
-        if (pose && pose.position) {
-          // invert for some reason
-          const rot = quat.create()
-          quat.invert(rot, pose.orientation)
-          // invert for some reason
-          const scale = -1
-          const pos = pose.position.map((value) => value*scale )
-          return mat4.fromRotationTranslation(mat4.create(), rot, pos)
-        } else {
-          return mat4.lookAt(
-            mat4.create(),
-            [0, 2.5, -20],
-            [0, 2.5, 0],
-            [0, 1, 0]
-          )
-        }
-      },
-    }
   })
 
-  regl.frame(() => {
+  regl.frame(({tick}) => {
     regl.clear({
       color: [0, 0, 0, 1],
       depth: 1
@@ -133,7 +90,9 @@ function startRender({ vrDisplay }) {
       separation: 0.5,
       vrDisplay,
     }, () => {
-      drawMesh()
+      const NUM_LODS = 4
+      const lod = Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick))))
+      drawMesh({ lod })
     })
   })
 
