@@ -17,7 +17,7 @@
   },
   "scripts": {
     "start": "beefy  --live ./example/index.js:bundle.js",
-    "build": "browserify ./example/index.js -o bundle.js"
+    "build": "browserify ./example/index.js -o ./example/bundle.js"
   },
   "repository": {
     "type": "git",
