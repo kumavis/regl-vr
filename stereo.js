@@ -1,5 +1,8 @@
+const mat4 = require('gl-mat4')
 const perspective = require('gl-mat4/perspective')
 const translate = require('gl-mat4/translate')
+const quat = require('gl-quat')
+const quatInvert = require('gl-quat/invert')
 
 module.exports = function ({regl}) {
   const mat = new Float32Array(16)
@@ -10,34 +13,17 @@ module.exports = function ({regl}) {
   }
   const setEye = regl({
     context: {
-      projection: ({viewportWidth, viewportHeight}, {eye, vrDisplay}) => {
-        // perspective(
-        //   mat,
-        //   fov,
-        //   0.5 * viewportWidth / viewportHeight,
-        //   zNear,
-        //   zFar)
-        // translate(mat, mat, [eye ? separation : -separation, 0, 0])
-
-        const side = eye ? 'left' : 'right'
-
-        const eyeParams = vrDisplay.getEyeParameters(side)
-        // perspective(
-        //   mat,
-        //   fov,
-        //   0.5 * viewportWidth / viewportHeight,
-        //   zNear,
-        //   zFar)
+      projection: ({viewportWidth, viewportHeight}, {eye, fov, zNear, zFar, side, vrDisplay}) => {
         const projectionMatrix = frameData[`${side}ProjectionMatrix`]
+        const eyeParams = vrDisplay.getEyeParameters(side)
         translate(mat, projectionMatrix, eyeParams.offset)
-
         return mat
-      }
+      },
     },
 
-    viewport: ({drawingBufferWidth, drawingBufferHeight}, {eye, layers}) => {
-      const layer = layers[0]
-      const boundsName = eye ? 'leftBounds' : 'rightBounds'
+    viewport: ({drawingBufferWidth, drawingBufferHeight}, {eye, side, layers}) => {
+      const layer = layers[0] || {}
+      const boundsName = `${side}Bounds`
       let bounds = layer[boundsName]
       if (!bounds || bounds.length !== 4) bounds = defaultBounds[boundsName]
       return {
@@ -45,13 +31,7 @@ module.exports = function ({regl}) {
         y: Math.round( drawingBufferHeight * bounds[1] ),
         width: Math.round( drawingBufferWidth * bounds[2] ),
         height: Math.round( drawingBufferHeight * bounds[3] ),
-      }  
-      // return {
-      //   x: eye * drawingBufferWidth / 2,
-      //   y: 0,
-      //   width: drawingBufferWidth / 2,
-      //   height: drawingBufferHeight
-      // }
+      }
     },
 
     scissor: {
@@ -67,7 +47,7 @@ module.exports = function ({regl}) {
     },
 
     uniforms: {
-      projection: regl.context('projection')
+      projection: regl.context('projection'),
     }
   })
 
@@ -83,25 +63,36 @@ module.exports = function ({regl}) {
     // load VR data
     vrDisplay.getFrameData(frameData)
     const layers = vrDisplay.getLayers()
+    const pose = vrDisplay.getPose();
+    
     // render left
     setEye({
       eye: 0,
+      side: 'left',
       layers,
-      //
+      vrDisplay,
+      pose,
+      // deprecated
       fov,
       zNear,
       zFar,
       separation
     }, block)
+    
     // render right
     setEye({
       eye: 1,
+      side: 'right',
       layers,
-      //
+      vrDisplay,
+      pose,
+      // deprecated
       fov,
       zNear,
       zFar,
       separation
     }, block)
+
+    vrDisplay.submitFrame()
   }
 }
