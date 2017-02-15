@@ -13,49 +13,49 @@ module.exports = function ({regl}) {
   }
   const setEye = regl({
     context: {
-      projection: ({viewportWidth, viewportHeight}, {eye, fov, zNear, zFar, side, vrDisplay}) => {
-        const projectionMatrix = frameData[`${side}ProjectionMatrix`]
-        const eyeParams = vrDisplay.getEyeParameters(side)
-        translate(mat, projectionMatrix, eyeParams.offset)
-        return mat
+      projection: ({}, { eye }) => {
+        if (eye) {
+          return frameData.rightProjectionMatrix
+        } else {
+          return frameData.leftProjectionMatrix
+        }
+      },
+      view: ({}, { eye }) => {
+        if (eye) {
+          return frameData.rightViewMatrix
+        } else {
+          return frameData.leftViewMatrix
+        }
       },
     },
 
-    viewport: ({drawingBufferWidth, drawingBufferHeight}, {eye, side, layers}) => {
-      const layer = layers[0] || {}
-      const boundsName = `${side}Bounds`
-      let bounds = layer[boundsName]
-      if (!bounds || bounds.length !== 4) bounds = defaultBounds[boundsName]
-      return {
-        x: Math.round( drawingBufferWidth * bounds[0] ),
-        y: Math.round( drawingBufferHeight * bounds[1] ),
-        width: Math.round( drawingBufferWidth * bounds[2] ),
-        height: Math.round( drawingBufferHeight * bounds[3] ),
-      }
-    },
+    viewport: calculateViewport,
 
     scissor: {
       enable: true,
-      box: ({drawingBufferWidth, drawingBufferHeight}, {eye}) => {
-        return {
-          x: eye * drawingBufferWidth / 2,
-          y: 0,
-          width: drawingBufferWidth / 2,
-          height: drawingBufferHeight
-        }
-      }
+      box: calculateViewport,
     },
 
     uniforms: {
       projection: regl.context('projection'),
+      view: regl.context('view'),
     }
   })
 
-  return function (props, block) {
+  return renderVr
+
+  function calculateViewport ({ drawingBufferWidth, drawingBufferHeight }, { eye }) {
+    return {
+      x: eye * drawingBufferWidth / 2,
+      y: 0,
+      width: drawingBufferWidth / 2,
+      height: drawingBufferHeight
+    }
+  }
+
+  function renderVr (props, block) {
     const zNear = props.zNear || 1
     const zFar = props.zFar || 1000.0
-    const separation = props.separation || 0.25
-    const fov = props.fov || (Math.PI / 4.0)
     // update VR display
     const vrDisplay = props.vrDisplay
     vrDisplay.depthNear = zNear
@@ -63,7 +63,6 @@ module.exports = function ({regl}) {
     // load VR data
     vrDisplay.getFrameData(frameData)
     const layers = vrDisplay.getLayers()
-    const pose = vrDisplay.getPose();
     
     // render left
     setEye({
@@ -71,12 +70,6 @@ module.exports = function ({regl}) {
       side: 'left',
       layers,
       vrDisplay,
-      pose,
-      // deprecated
-      fov,
-      zNear,
-      zFar,
-      separation
     }, block)
     
     // render right
@@ -85,12 +78,6 @@ module.exports = function ({regl}) {
       side: 'right',
       layers,
       vrDisplay,
-      pose,
-      // deprecated
-      fov,
-      zNear,
-      zFar,
-      separation
     }, block)
 
     vrDisplay.submitFrame()

@@ -23,6 +23,7 @@ navigator.getVRDisplays().then((vrDisplays) => {
   if (vrDisplays.length === 0) throw new Error('No VrDisplays.')
 
   const vrDisplay = vrDisplays[0]
+  global.vrDisplay = vrDisplay
   console.log('VR display detected: ' + vrDisplay.displayName);
 
   // setup presenting
@@ -54,27 +55,15 @@ navigator.getVRDisplays().then((vrDisplays) => {
 
 function startRender({ vrDisplay }) {
 
-  const drawMesh = generateBunnyDrawer({
-  // const drawMesh = generateLodBunnyDrawer({
+  // const drawMesh = generateBunnyDrawer({
+  const drawMesh = generateLodBunnyDrawer({
     regl,
-    view: ({tick}) => {
-      const pose = vrDisplay.getPose()
-      if (pose && pose.position) {
-        // invert for some reason
-        const rot = quat.create()
-        quat.invert(rot, pose.orientation)
-        // invert for some reason
-        const scale = -1
-        const pos = pose.position.map((value) => value*scale )
-        return mat4.fromRotationTranslation(mat4.create(), rot, pos)
-      } else {
-        return mat4.lookAt(
-          mat4.create(),
-          [0, 2.5, -20],
-          [0, 2.5, 0],
-          [0, 1, 0]
-        )
-      }
+    model: ({tick}) => {
+      const mat = mat4.identity(mat4.create())
+      translate(mat, mat, [0, -2.5, -2])
+      mat4.rotateY(mat, mat, 0.0025 * tick)
+      scale(mat, mat, [0.25, 0.25, 0.25])
+      return mat
     },
   })
 
@@ -87,9 +76,9 @@ function startRender({ vrDisplay }) {
     webVR({
       zNear: 0.5,
       zFar: 1000.0,
-      separation: 0.5,
       vrDisplay,
     }, () => {
+      // for morph bunny
       const NUM_LODS = 4
       const lod = Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick))))
       drawMesh({ lod })

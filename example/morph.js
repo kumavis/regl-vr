@@ -1,7 +1,7 @@
 const mat4 = require('gl-mat4')
 const bunny = require('bunny')
 
-module.exports = function generateLodDrawer({ regl, view }) {
+module.exports = function generateLodDrawer({ regl, view, model }) {
 
   // We'll generate 4 refined levels of detail for the bunny mesh
   const NUM_LODS = 4
@@ -86,13 +86,13 @@ module.exports = function generateLodDrawer({ regl, view }) {
     attribute vec3 p0, p1;
     uniform float lod;
 
-    uniform mat4 view, projection;
+    uniform mat4 view, projection, model;
 
     varying vec3 fragColor;
     void main () {
       vec3 position = mix(p0, p1, lod);
       fragColor = 0.5 + (0.2 * position);
-      gl_Position = projection * view * vec4(position, 1);
+      gl_Position = projection * view * model * vec4(position, 1);
     }`,
 
     frag: `
@@ -114,7 +114,8 @@ module.exports = function generateLodDrawer({ regl, view }) {
     elements: lodCells,
 
     uniforms: {
-      view: view,
+      // view: view,
+      model: model,
 
       // We set the lod uniform to be the fractional LOD
       lod: (_, {lod}) => lod - Math.floor(lod)
