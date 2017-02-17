@@ -6,9 +6,9 @@ const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-const generateBun = require('./bunny')
-const generateWireBun = require('./wire')
-const webVR = require('../vr')({regl})
+const generateBun = require('./example/bunny')
+const generateWireBun = require('./example/wire')
+const webVR = require('./index')({regl})
 
 // WebVR api to get HMD
 navigator.getVRDisplays().then((vrDisplays) => {

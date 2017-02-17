@@ -1,8 +1,8 @@
 {
   "name": "regl-vr",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Basic stereo renderer for regl",
-  "main": "stereo.js",
+  "main": "index.js",
   "directories": {
     "example": "example"
   },
@@ -12,13 +12,13 @@
   },
   "devDependencies": {
     "angle-normals": "^1.0.0",
-    "budo": "^9.4.7",
+    "beefy": "^2.1.8",
     "bunny": "^1.0.1",
     "regl": "^1.1.0"
   },
   "scripts": {
-    "start": "budo --live ./example/index.js",
-    "build": "browserify ./example/index.js -o ./example/bundle.js"
+    "start": "beefy example.js:bundle.js --live",
+    "build": "browserify example.js -o ./bundle.js"
   },
   "repository": {
     "type": "git",
