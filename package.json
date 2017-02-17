@@ -12,11 +12,12 @@
   },
   "devDependencies": {
     "angle-normals": "^1.0.0",
+    "budo": "^9.4.7",
     "bunny": "^1.0.1",
     "regl": "^1.1.0"
   },
   "scripts": {
-    "start": "beefy --live ./example/index.js",
+    "start": "budo --live ./example/index.js",
     "build": "browserify ./example/index.js -o ./example/bundle.js"
   },
   "repository": {
