@@ -1,18 +1,16 @@
 const regl = require('regl')({
   pixelRatio: 1
 })
-const normals = require('angle-normals')
-const bunny = require('bunny')
 const quat = require('gl-quat')
 const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-const generateBunnyDrawer = require('./bunny')
-const generateLodBunnyDrawer = require('./morph')
+const generateBun = require('./bunny')
+const generateWireBun = require('./wire')
 const webVR = require('../vr')({regl})
 
-
+// WebVR api to get HMD
 navigator.getVRDisplays().then((vrDisplays) => {
 
   if (vrDisplays.length === 0) throw new Error('No VrDisplays.')
@@ -29,32 +27,48 @@ navigator.getVRDisplays().then((vrDisplays) => {
   console.error(err)
 })
 
+// start standard regl render loop
 function startRender({ vrDisplay }) {
 
-  // const drawMesh = generateBunnyDrawer({
-  const drawMesh = generateLodBunnyDrawer({
-    regl,
-    model: ({tick}) => {
-      const mat = mat4.identity(mat4.create())
-      translate(mat, mat, [0, -2.5, -2])
-      mat4.rotateY(mat, mat, 0.0025 * tick)
-      scale(mat, mat, [0.25, 0.25, 0.25])
-      return mat
-    },
-  })
+  // instantiate bun renderers
+  const drawNormyBun = generateBun({ regl })
+  const drawWireBun = generateWireBun({ regl })
 
-  regl.frame(({tick}) => {
+  // start render loop
+  regl.frame(({ tick }) => {
     regl.clear({
       color: [0, 0, 0, 1],
       depth: 1
     })
-
+    // regl-vr calls the inner block twice
+    // to draw each eye of the HMD
+    // "projection" and "view" will be set for you
     webVR({ vrDisplay }, () => {
-      // for morph bunny
-      const NUM_LODS = 4
-      const lod = Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick))))
-      drawMesh({ lod })
+      
+      drawWireBun({
+        model: wireBunPos({ tick }),
+      })
+      drawNormyBun({
+        model: normyBunPos({ tick }),
+      })
+
     })
   })
 
+}
+
+function wireBunPos ({ tick }) {
+  const mat = mat4.identity(mat4.create())
+  translate(mat, mat, [0, -2.5, -2])
+  mat4.rotateY(mat, mat, 0.0025 * tick)
+  scale(mat, mat, [0.25, 0.25, 0.25])
+  return mat
+}
+
+function normyBunPos ({ tick }) {
+  const mat = mat4.identity(mat4.create())
+  translate(mat, mat, [-1.5, -2.5, 0])
+  mat4.rotateY(mat, mat, 0.0025 * tick)
+  scale(mat, mat, [0.1, 0.1, 0.1])
+  return mat
 }

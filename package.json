@@ -16,12 +16,12 @@
     "regl": "^1.1.0"
   },
   "scripts": {
-    "start": "beefy  --live ./example/index.js:bundle.js",
+    "start": "beefy --live ./example/index.js",
     "build": "browserify ./example/index.js -o ./example/bundle.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kumvis/regl-vr.git"
+    "url": "git+https://github.com/kumavis/regl-vr.git"
   },
   "keywords": [
     "stereo",
@@ -30,10 +30,10 @@
     "graphics",
     "webgl"
   ],
-  "author": "Mikola Lysenko",
+  "author": "kumavis",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/kumvis/regl-vr/issues"
+    "url": "https://github.com/kumavis/regl-vr/issues"
   },
-  "homepage": "https://github.com/kumvis/regl-vr#readme"
+  "homepage": "https://github.com/kumavis/regl-vr#readme"
 }

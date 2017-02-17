@@ -46,7 +46,6 @@ module.exports = function ({regl}) {
 
   function renderVr ({ vrDisplay }, renderScene) {
     // load VR data
-    const vrDisplay = props.vrDisplay
     vrDisplay.getFrameData(frameData)
     
     // render left

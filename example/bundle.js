@@ -6,7 +6,7 @@ const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-module.exports = function generateBunnyDrawer({ regl, model }) {
+module.exports = function generateBunnyDrawer({ regl }) {
 
   const drawMesh = regl({
     vert: `
@@ -44,7 +44,7 @@ module.exports = function generateBunnyDrawer({ regl, model }) {
     elements: bunny.cells,
 
     uniforms: {
-      model: model,
+      model: regl.prop('model'),
     }
   })
 
@@ -56,97 +56,83 @@ module.exports = function generateBunnyDrawer({ regl, model }) {
 const regl = require('regl')({
   pixelRatio: 1
 })
-const normals = require('angle-normals')
-const bunny = require('bunny')
 const quat = require('gl-quat')
 const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-const generateBunnyDrawer = require('./bunny')
-const generateLodBunnyDrawer = require('./morph')
+const generateBun = require('./bunny')
+const generateWireBun = require('./wire')
 const webVR = require('../vr')({regl})
 
-window.addEventListener( 'vrdisplaypresentchange', onVRDisplayPresentChange, false )
-
-function onVRDisplayPresentChange(){
-  console.log('onVRDisplayPresentChange', arguments)
-}
-
+// WebVR api to get HMD
 navigator.getVRDisplays().then((vrDisplays) => {
 
   if (vrDisplays.length === 0) throw new Error('No VrDisplays.')
 
   const vrDisplay = vrDisplays[0]
   global.vrDisplay = vrDisplay
-  console.log('VR display detected: ' + vrDisplay.displayName);
-
+  console.log(`VR display detected: ${vrDisplay.displayName}`)
+  
   // setup presenting
   vrDisplay.requestPresent([{ source: regl._gl.canvas }])
-  window.addEventListener('beforeunload', (e) => {
-    vrDisplay.exitPresent()
-  })
-
-  const layers = vrDisplay.getLayers()
-  console.log('layers:', layers)
-
-  const eyeParams = vrDisplay.getEyeParameters('left')
-  console.log(eyeParams)
-  
-  
-  // vrDisplay.requestAnimationFrame
-  // vrDisplay.submitFrame();
-  const pose = vrDisplay.getPose();
-  console.log('pose:', pose)
-  // vrDisplay.resetPose();
-  console.log('stageParameters:', vrDisplay.stageParameters)
-  // standingMatrix.fromArray( vrDisplay.stageParameters.sittingToStandingTransform );
-
   startRender({ vrDisplay })
 
 }).catch((err) => {
   console.error(err)
 })
 
+// start standard regl render loop
 function startRender({ vrDisplay }) {
 
-  // const drawMesh = generateBunnyDrawer({
-  const drawMesh = generateLodBunnyDrawer({
-    regl,
-    model: ({tick}) => {
-      const mat = mat4.identity(mat4.create())
-      translate(mat, mat, [0, -2.5, -2])
-      mat4.rotateY(mat, mat, 0.0025 * tick)
-      scale(mat, mat, [0.25, 0.25, 0.25])
-      return mat
-    },
-  })
+  // instantiate bun renderers
+  const drawNormyBun = generateBun({ regl })
+  const drawWireBun = generateWireBun({ regl })
 
-  regl.frame(({tick}) => {
+  // start render loop
+  regl.frame(({ tick }) => {
     regl.clear({
       color: [0, 0, 0, 1],
       depth: 1
     })
+    // regl-vr calls the inner block twice
+    // to draw each eye of the HMD
+    // "projection" and "view" will be set for you
+    webVR({ vrDisplay }, () => {
+      
+      drawWireBun({
+        model: wireBunPos({ tick }),
+      })
+      drawNormyBun({
+        model: normyBunPos({ tick }),
+      })
 
-    webVR({
-      zNear: 0.5,
-      zFar: 1000.0,
-      vrDisplay,
-    }, () => {
-      // for morph bunny
-      const NUM_LODS = 4
-      const lod = Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick))))
-      drawMesh({ lod })
     })
   })
 
 }
+
+function wireBunPos ({ tick }) {
+  const mat = mat4.identity(mat4.create())
+  translate(mat, mat, [0, -2.5, -2])
+  mat4.rotateY(mat, mat, 0.0025 * tick)
+  scale(mat, mat, [0.25, 0.25, 0.25])
+  return mat
+}
+
+function normyBunPos ({ tick }) {
+  const mat = mat4.identity(mat4.create())
+  translate(mat, mat, [-1.5, -2.5, 0])
+  mat4.rotateY(mat, mat, 0.0025 * tick)
+  scale(mat, mat, [0.1, 0.1, 0.1])
+  return mat
+}
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../vr":74,"./bunny":1,"./morph":3,"angle-normals":4,"bunny":5,"gl-mat4":16,"gl-mat4/scale":27,"gl-mat4/translate":29,"gl-quat":41,"regl":73}],3:[function(require,module,exports){
+},{"../vr":74,"./bunny":1,"./wire":3,"gl-mat4":16,"gl-mat4/scale":27,"gl-mat4/translate":29,"gl-quat":41,"regl":73}],3:[function(require,module,exports){
 const mat4 = require('gl-mat4')
 const bunny = require('bunny')
 
-module.exports = function generateLodDrawer({ regl, model }) {
+module.exports = function generateLodDrawer({ regl }) {
 
   // We'll generate 4 refined levels of detail for the bunny mesh
   const NUM_LODS = 4
@@ -224,18 +210,22 @@ module.exports = function generateLodDrawer({ regl, model }) {
 
   // Ok!  It's time to define our command:
   const drawBunnyWithLOD = regl({
+    context: {
+      lodFloat: ({ tick }) => Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick)))),
+    },
+
     vert: `
     precision mediump float;
 
     // p0 and p1 are the two LOD arrays for this command
     attribute vec3 p0, p1;
-    uniform float lod;
+    uniform float lodGap;
 
     uniform mat4 view, projection, model;
 
     varying vec3 fragColor;
     void main () {
-      vec3 position = mix(p0, p1, lod);
+      vec3 position = mix(p0, p1, lodGap);
       fragColor = 0.5 + (0.2 * position);
       gl_Position = projection * view * model * vec4(position, 1);
     }`,
@@ -250,8 +240,8 @@ module.exports = function generateLodDrawer({ regl, model }) {
     // We take the two LOD attributes directly above and below the current
     // fractional LOD
     attributes: {
-      p0: (_, {lod}) => lodBuffers[Math.floor(lod)],
-      p1: (_, {lod}) => lodBuffers[Math.ceil(lod)]
+      p0: ({ lodFloat }) => lodBuffers[Math.floor(lodFloat)],
+      p1: ({ lodFloat }) => lodBuffers[Math.ceil(lodFloat)],
     },
 
     // For the elements we use the LOD-orderd array of edges that we computed
@@ -259,14 +249,14 @@ module.exports = function generateLodDrawer({ regl, model }) {
     elements: lodCells,
 
     uniforms: {
-      model: model,
+      model: regl.prop('model'),
 
-      // We set the lod uniform to be the fractional LOD
-      lod: (_, {lod}) => lod - Math.floor(lod)
+      // We set the lodGap uniform to be the fractional LOD
+      lodGap: ({ lodFloat }) => lodFloat - Math.floor(lodFloat)
     },
 
     // Finally we only draw as many primitives as are present in the finest LOD
-    count: (_, {lod}) => 2 * lodOffsets[Math.floor(lod)]
+    count: ({ lodFloat }) => 2 * lodOffsets[Math.floor(lodFloat)]
   })
 
   return drawBunnyWithLOD
@@ -11757,19 +11747,10 @@ return wrapREGL;
 
 },{}],74:[function(require,module,exports){
 (function (global){
-const mat4 = require('gl-mat4')
-const perspective = require('gl-mat4/perspective')
-const translate = require('gl-mat4/translate')
-const quat = require('gl-quat')
-const quatInvert = require('gl-quat/invert')
+const VRFrameData = global.VRFrameData
 
 module.exports = function ({regl}) {
-  const mat = new Float32Array(16)
-  const frameData = new global.VRFrameData()
-  const defaultBounds = {
-    leftBounds: [ 0.0, 0.0, 0.5, 1.0 ],
-    rightBounds: [ 0.5, 0.0, 0.5, 1.0 ],
-  }
+  const frameData = new VRFrameData()
   const setEye = regl({
     context: {
       projection: ({}, { eye }) => {
@@ -11812,36 +11793,28 @@ module.exports = function ({regl}) {
     }
   }
 
-  function renderVr (props, block) {
-    const zNear = props.zNear || 1
-    const zFar = props.zFar || 1000.0
-    // update VR display
-    const vrDisplay = props.vrDisplay
-    vrDisplay.depthNear = zNear
-    vrDisplay.depthFar = zFar
+  function renderVr ({ vrDisplay }, renderScene) {
     // load VR data
     vrDisplay.getFrameData(frameData)
-    const layers = vrDisplay.getLayers()
     
     // render left
     setEye({
       eye: 0,
       side: 'left',
-      layers,
       vrDisplay,
-    }, block)
+    }, renderScene)
     
     // render right
     setEye({
       eye: 1,
       side: 'right',
-      layers,
       vrDisplay,
-    }, block)
+    }, renderScene)
 
+    // push frame to HMD
     vrDisplay.submitFrame()
   }
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"gl-mat4":16,"gl-mat4/perspective":21,"gl-mat4/translate":29,"gl-quat":41,"gl-quat/invert":42}]},{},[2]);
+},{}]},{},[2]);

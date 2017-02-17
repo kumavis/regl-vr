@@ -1,7 +1,7 @@
 const mat4 = require('gl-mat4')
 const bunny = require('bunny')
 
-module.exports = function generateLodDrawer({ regl, model }) {
+module.exports = function generateLodDrawer({ regl }) {
 
   // We'll generate 4 refined levels of detail for the bunny mesh
   const NUM_LODS = 4
@@ -79,18 +79,22 @@ module.exports = function generateLodDrawer({ regl, model }) {
 
   // Ok!  It's time to define our command:
   const drawBunnyWithLOD = regl({
+    context: {
+      lodFloat: ({ tick }) => Math.min(NUM_LODS, Math.max(0,0.5 * NUM_LODS * (1 + Math.cos(0.003 * tick)))),
+    },
+
     vert: `
     precision mediump float;
 
     // p0 and p1 are the two LOD arrays for this command
     attribute vec3 p0, p1;
-    uniform float lod;
+    uniform float lodGap;
 
     uniform mat4 view, projection, model;
 
     varying vec3 fragColor;
     void main () {
-      vec3 position = mix(p0, p1, lod);
+      vec3 position = mix(p0, p1, lodGap);
       fragColor = 0.5 + (0.2 * position);
       gl_Position = projection * view * model * vec4(position, 1);
     }`,
@@ -105,8 +109,8 @@ module.exports = function generateLodDrawer({ regl, model }) {
     // We take the two LOD attributes directly above and below the current
     // fractional LOD
     attributes: {
-      p0: (_, {lod}) => lodBuffers[Math.floor(lod)],
-      p1: (_, {lod}) => lodBuffers[Math.ceil(lod)]
+      p0: ({ lodFloat }) => lodBuffers[Math.floor(lodFloat)],
+      p1: ({ lodFloat }) => lodBuffers[Math.ceil(lodFloat)],
     },
 
     // For the elements we use the LOD-orderd array of edges that we computed
@@ -114,14 +118,14 @@ module.exports = function generateLodDrawer({ regl, model }) {
     elements: lodCells,
 
     uniforms: {
-      model: model,
+      model: regl.prop('model'),
 
-      // We set the lod uniform to be the fractional LOD
-      lod: (_, {lod}) => lod - Math.floor(lod)
+      // We set the lodGap uniform to be the fractional LOD
+      lodGap: ({ lodFloat }) => lodFloat - Math.floor(lodFloat)
     },
 
     // Finally we only draw as many primitives as are present in the finest LOD
-    count: (_, {lod}) => 2 * lodOffsets[Math.floor(lod)]
+    count: ({ lodFloat }) => 2 * lodOffsets[Math.floor(lodFloat)]
   })
 
   return drawBunnyWithLOD

@@ -5,7 +5,7 @@ const mat4 = require('gl-mat4')
 const translate = require('gl-mat4/translate')
 const scale = require('gl-mat4/scale')
 
-module.exports = function generateBunnyDrawer({ regl, model }) {
+module.exports = function generateBunnyDrawer({ regl }) {
 
   const drawMesh = regl({
     vert: `
@@ -43,7 +43,7 @@ module.exports = function generateBunnyDrawer({ regl, model }) {
     elements: bunny.cells,
 
     uniforms: {
-      model: model,
+      model: regl.prop('model'),
     }
   })
 
