@@ -1,8 +1,8 @@
 {
-  "name": "regl-stereo",
+  "name": "regl-vr",
   "version": "1.0.0",
-  "description": "Basic stereo renderer for regl",
-  "main": "stereo.js",
+  "description": "regl-stereo =========== A simple side-by-side stereo renderer for [`regl`](https://regl.party).",
+  "main": "vr.js",
   "directories": {
     "example": "example"
   },
@@ -12,27 +12,22 @@
   },
   "devDependencies": {
     "angle-normals": "^1.0.0",
+    "beefy": "^2.1.8",
+    "browserify": "^14.4.0",
     "bunny": "^1.0.1",
-    "regl": "^1.1.0"
+    "regl": "^1.3.0"
   },
   "scripts": {
     "start": "beefy ./example/index.js:bundle.js --live"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikolalysenko/regl-stereo.git"
+    "url": "git+https://github.com/kumavis/regl-vr.git"
   },
-  "keywords": [
-    "stereo",
-    "regl",
-    "render",
-    "graphics",
-    "webgl"
-  ],
-  "author": "Mikola Lysenko",
-  "license": "MIT",
+  "author": "",
+  "license": "ISC",
   "bugs": {
-    "url": "https://github.com/mikolalysenko/regl-stereo/issues"
+    "url": "https://github.com/kumavis/regl-vr/issues"
   },
-  "homepage": "https://github.com/mikolalysenko/regl-stereo#readme"
+  "homepage": "https://github.com/kumavis/regl-vr#readme"
 }
